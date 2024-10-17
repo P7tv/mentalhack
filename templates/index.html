@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Recognition App</title>
+</head>
+<body>
+    <h1>แอปพลิเคชันรู้จำเสียง</h1>
+    <button id="start-btn">เริ่ม</button>
+    
+    <div id="spoken-text">
+        <h2>คุณพูดว่า:</h2>
+        <p id="spoken"></p>
+    </div>
+    
+    <div id="result">
+        <h2>ผลการวิเคราะห์:</h2>
+        <p id="analysis"></p>
+    </div>
+
+    <script>
+        document.getElementById('start-btn').onclick = function() {
+            fetch('/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('spoken').innerText = data.spoken_text;
+                    document.getElementById('analysis').innerText = data.result;
+                });
+        }
+    </script>
+</body>
+</html>
