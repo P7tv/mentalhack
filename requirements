@@ -1,2 +1,5 @@
-Flask
-requests
+Flask==2.2.2
+pyaudio==0.2.11
+SpeechRecognition==3.9.0
+langchain==0.0.200
+langchain-community==0.0.1
