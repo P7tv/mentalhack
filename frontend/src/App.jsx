@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import axios from 'axios'
+import { recordAndTranscribe } from './services/audioService'
+import { analyzeWithGroq } from './services/groqService'
 import './App.css'
 
 function App() {
@@ -7,22 +8,29 @@ function App() {
   const [analysis, setAnalysis] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [step, setStep] = useState('')
 
   const handleStart = async () => {
     setLoading(true)
     setError('')
     setSpokenText('')
     setAnalysis('')
+    setStep('')
 
     try {
-      const response = await axios.post('/api/analyze')
-      setSpokenText(response.data.spoken_text)
-      setAnalysis(response.data.result)
+      setStep('🎤 กำลังฟังเสียง...')
+      const text = await recordAndTranscribe()
+      setSpokenText(text)
+
+      setStep('🤖 กำลังวิเคราะห์...')
+      const result = await analyzeWithGroq(text)
+      setAnalysis(result)
     } catch (err) {
-      setError(err.response?.data?.error || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+      setError(err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
       console.error('Error:', err)
     } finally {
       setLoading(false)
+      setStep('')
     }
   }
 
@@ -39,8 +47,14 @@ function App() {
           disabled={loading}
           className={`start-btn ${loading ? 'loading' : ''}`}
         >
-          {loading ? 'กำลังประมวลผล...' : '🎤 เริ่ม'}
+          {loading ? '⏳ กำลังประมวลผล...' : '🎤 เริ่มพูด'}
         </button>
+
+        {step && (
+          <div className="step-indicator">
+            <p>{step}</p>
+          </div>
+        )}
 
         {error && (
           <div className="error-message">
@@ -50,7 +64,7 @@ function App() {
 
         {spokenText && (
           <section className="result-section">
-            <h2>คุณพูดว่า</h2>
+            <h2>📝 คุณพูดว่า</h2>
             <div className="result-content">
               <p>{spokenText}</p>
             </div>
@@ -59,7 +73,7 @@ function App() {
 
         {analysis && (
           <section className="result-section">
-            <h2>ผลการวิเคราะห์</h2>
+            <h2>🔍 ผลการวิเคราะห์</h2>
             <div className="result-content analysis">
               <p>{analysis}</p>
             </div>
@@ -68,7 +82,8 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>⚠️ แอปพลิเคชันนี้ใช้สำหรับการวิเคราะห์เบื้องต้นเท่านั้น หากมีปัญหาจิตใจ กรุณาติดต่อผู้เชี่ยวชาญ</p>
+        <p>⚠️ แอปพลิเคชันนี้ใช้สำหรับการวิเคราะห์เบื้องต้นเท่านั้น หากมีปัญหาจิตใจรุนแรง กรุณาติดต่อผู้เชี่ยวชาญทันที</p>
+        <p style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>Powered by Groq AI ⚡</p>
       </footer>
     </div>
   )

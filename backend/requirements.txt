@@ -1,8 +1,0 @@
-Flask==2.3.2
-Flask-CORS==4.0.0
-python-dotenv==1.0.0
-pyaudio==0.2.11
-SpeechRecognition==3.10.0
-langchain==0.0.200
-langchain-community==0.0.1
-gunicorn==20.1.0
