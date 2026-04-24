@@ -1,34 +1,36 @@
 import os
-import re
+from dotenv import load_dotenv
 
 import pyaudio
 import speech_recognition as sr
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 from langchain.chains import LLMChain
 from langchain_community.llms import HuggingFaceEndpoint
 from langchain_core.prompts import PromptTemplate
 
+load_dotenv()
+
 app = Flask(__name__)
+CORS(app)
 
-HUGGINGFACEHUB_API_TOKEN = "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"
+HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACE_API_KEY")
+MIC_INDEX = int(os.getenv("MIC_INDEX", "1"))
 
-# ฟังก์ชันสำหรับการฟังเสียง
 def listen_to_audio():
-    recognizer = sr.Recognizer()
-    mic_index = 1  # ใช้ไมค์ตัวแรกในรายการ
-
-    with sr.Microphone(device_index=mic_index) as source:
-        print("กำลังฟังเสียง...")
-        audio = recognizer.listen(source)
-
     try:
+        recognizer = sr.Recognizer()
+        with sr.Microphone(device_index=MIC_INDEX) as source:
+            audio = recognizer.listen(source, timeout=10)
+
         text = recognizer.recognize_google(audio, language="th-TH")
-        print("คุณพูดว่า: " + text)
         return text
     except sr.UnknownValueError:
         return "ไม่สามารถเข้าใจเสียง"
-    except sr.RequestError:
-        return "ไม่สามารถเชื่อมต่อกับบริการ"
+    except sr.RequestError as e:
+        return f"ไม่สามารถเชื่อมต่อกับบริการ: {str(e)}"
+    except Exception as e:
+        return f"เกิดข้อผิดพลาด: {str(e)}"
 
 # ฟังก์ชันสำหรับวิเคราะห์ข้อความ
 def analyze_text(text):
@@ -49,17 +51,19 @@ def analyze_text(text):
 
     return output['text']
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+@app.route('/api/analyze', methods=['POST'])
+def analyze():
+    try:
+        spoken_text = listen_to_audio()
+        analysis = analyze_text(spoken_text)
+        return jsonify({'spoken_text': spoken_text, 'result': analysis})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/start', methods=['POST'])
-def start():
-    spoken_text = listen_to_audio()  # ฟังเสียงและแปลงเป็นข้อความ
-    analysis = analyze_text(spoken_text)  # วิเคราะห์ข้อความ
-    
-    # คืนค่าข้อความที่พูดและผลการวิเคราะห์ในรูปแบบ JSON
-    return jsonify({'spoken_text': spoken_text, 'result': analysis})
+@app.route('/api/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)

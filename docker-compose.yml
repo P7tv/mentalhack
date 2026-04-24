@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: production
+      FLASK_DEBUG: "False"
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY}
+      MIC_INDEX: ${MIC_INDEX:-1}
+    volumes:
+      - /dev/snd:/dev/snd
+    devices:
+      - /dev/snd:/dev/snd
+    networks:
+      - mentalhack-network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://backend:5000
+    depends_on:
+      - backend
+    networks:
+      - mentalhack-network
+
+networks:
+  mentalhack-network:
+    driver: bridge
